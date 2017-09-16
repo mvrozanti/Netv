@@ -52,16 +52,16 @@ def draw():
         if len(rgb) == 3:
             color = tuple_to_color(tuple(rgb))
             rgb.clear()
-            pixel = c.create_line((x+3, y+3), (x+4, y+4), fill=color, width=10)
+            pixel = c.create_line((x+3, y), (x+3, y+3), fill=color, width=5)
             if len(pixels) <= x:
                 pixels.insert(x, [])
             pixels[x].insert(y+1, pixel)
             #y+=1
-            #if y > HEIGHT:
-            #    y = 0
-            #    x += 1
-            #    if x > WIDTH:
-            #        x = y = 0
+            if y > HEIGHT:
+                y = 0
+                x += 1
+                if x > WIDTH:
+                    x = y = 0
             # shift *
             for row in pixels:
                 for p in row:
@@ -71,17 +71,17 @@ def draw():
                     xy[3] = xy[3] + p_width
                     if xy[1] > HEIGHT:
                         xy[1] = 0#y=0
-                        xy[3] = 1
+                        xy[3] = p_width
                         xy[0] = xy[0] + p_width#x++
                         xy[2] = xy[2] + p_width
                     if xy[0] > WIDTH:
                         xy[0] = 0#x=y=0
-                        xy[2] = 1
+                        xy[2] = p_width
                         xy[1] = 0
-                        xy[3] = 1
+                        xy[3] = p_width
                     c.coords(p, xy)
-                    c.update_idletasks()
                     c.update()
+                    c.update_idletasks()
     c.after(1, draw)
 draw()
 t.protocol('WM_DELETE_WINDOW', on_close)
