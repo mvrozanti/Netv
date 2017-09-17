@@ -1,4 +1,5 @@
 from tkinter import *
+import random
 import socket
 import os
 import numpy as np
@@ -38,25 +39,32 @@ def tuple_to_color(rgb):
 t = Tk()
 c = Canvas(t, width=WIDTH, height=HEIGHT, bg='black')
 c.pack()
-pixels = []
 x, y = 0, 0
+PIX_RATE = WIDTH*HEIGHT/100
+pixels = [None] * int(PIX_RATE)
 def draw():
     bs = sniffer.recvfrom(65565)
     les_bytes = bs[0]
     rgb = []
     global pixels
-    global x
-    global y
+    #global x
+    #global y
     for i in range(len(les_bytes)):
         rgb.append(les_bytes[i] % 255)
         if len(rgb) == 3:
             color = tuple_to_color(tuple(rgb))
+            print(color)
             rgb.clear()
-            pixel = c.create_line((x+3, y), (x+3, y+3), fill=color, width=5)
+            #pixel = c.create_line((x+3, y), (x+3, y+3), fill=color, width=18)
+            x,y = (random.randint(1, WIDTH),random.randint(1, HEIGHT))
+            pixel = c.create_line(x,y, x,y-5, fill=color, width=5)
+            pixels.append(pixel)
+            if len(pixels) > PIX_RATE: c.delete(pixels.pop(0))
+            """
             if len(pixels) <= x:
                 pixels.insert(x, [])
             pixels[x].insert(y+1, pixel)
-            #y+=1
+            y+=1
             if y > HEIGHT:
                 y = 0
                 x += 1
@@ -80,8 +88,9 @@ def draw():
                         xy[1] = 0
                         xy[3] = p_width
                     c.coords(p, xy)
-                    c.update()
-                    c.update_idletasks()
+            """
+            c.update_idletasks()
+            c.update()
     c.after(1, draw)
 draw()
 t.protocol('WM_DELETE_WINDOW', on_close)
