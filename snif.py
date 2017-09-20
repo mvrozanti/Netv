@@ -1,4 +1,5 @@
-from tkinter import *
+import threading
+import pygame
 import random
 import socket
 import os
@@ -20,6 +21,8 @@ sniffer.setsockopt(socket.IPPROTO_IP, socket.IP_HDRINCL, 1)
 WIDTH=600
 HEIGHT=600
 
+all_bytes = []
+
 if os.name == 'nt':
     sniffer.ioctl(socket.SIO_RCVALL, socket.RCVALL_ON)
 
@@ -27,6 +30,15 @@ def on_close():
     # if we’re using Windows, turn off promiscuous mode
     if os.name == 'nt':
         sniffer.ioctl(socket.SIO_RCVALL, socket.RCVALL_OFF)
+        
+def get_latest_packets(sniffer, all_bytes):
+    while True:
+        bs = sniffer.recvfrom(65565)
+        all_bytes.extend(bs[0])
+    
+t = threading.Thread(target=get_latest_packets, args=(sniffer, all_bytes))
+t.daemon = True
+t.start()
 
 def tuple_to_color(rgb):
     color = '#'
@@ -36,62 +48,20 @@ def tuple_to_color(rgb):
     color+='%02x'%b
     return color
 
-t = Tk()
-c = Canvas(t, width=WIDTH, height=HEIGHT, bg='black')
-c.pack()
+f = pygame.display.set_mode((WIDTH,HEIGHT))
+clock = pygame.time.Clock()
+running = True
 x, y = 0, 0
-PIX_RATE = WIDTH*HEIGHT/100
-pixels = [None] * int(PIX_RATE)
-def draw():
-    bs = sniffer.recvfrom(65565)
-    les_bytes = bs[0]
-    rgb = []
-    global pixels
-    #global x
-    #global y
-    for i in range(len(les_bytes)):
-        rgb.append(les_bytes[i] % 255)
-        if len(rgb) == 3:
-            color = tuple_to_color(tuple(rgb))
-            print(color)
-            rgb.clear()
-            #pixel = c.create_line((x+3, y), (x+3, y+3), fill=color, width=18)
-            x,y = (random.randint(1, WIDTH),random.randint(1, HEIGHT))
-            pixel = c.create_line(x,y, x,y-5, fill=color, width=5)
-            pixels.append(pixel)
-            if len(pixels) > PIX_RATE: c.delete(pixels.pop(0))
-            """
-            if len(pixels) <= x:
-                pixels.insert(x, [])
-            pixels[x].insert(y+1, pixel)
-            y+=1
-            if y > HEIGHT:
-                y = 0
-                x += 1
-                if x > WIDTH:
-                    x = y = 0
-            # shift *
-            for row in pixels:
-                for p in row:
-                    xy = c.coords(p)
-                    p_width = float(c.itemcget(p, 'width'))
-                    xy[1] = xy[1] + p_width#y++
-                    xy[3] = xy[3] + p_width
-                    if xy[1] > HEIGHT:
-                        xy[1] = 0#y=0
-                        xy[3] = p_width
-                        xy[0] = xy[0] + p_width#x++
-                        xy[2] = xy[2] + p_width
-                    if xy[0] > WIDTH:
-                        xy[0] = 0#x=y=0
-                        xy[2] = p_width
-                        xy[1] = 0
-                        xy[3] = p_width
-                    c.coords(p, xy)
-            """
-            c.update_idletasks()
-            c.update()
-    c.after(1, draw)
-draw()
-t.protocol('WM_DELETE_WINDOW', on_close)
-t.mainloop()
+rgb = []
+while True:
+    if len(all_bytes) > 0:
+        b = all_bytes.pop(0)
+        rgb.append(b % 255)
+    if len(rgb) == 3:
+        x,y = (random.randint(1, WIDTH),random.randint(1, HEIGHT))
+        f.set_at((x,y), tuple(rgb))
+        rgb.clear()
+        pygame.display.flip()
+        clock.tick(0)
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT: running = False
